@@ -1,7 +1,10 @@
 package com.ppc.mm.nickprodmetacomparing.dao;
 
+import com.ppc.mm.nickprodmetacomparing.entity.NPMetaCompareTabularDataMar25;
 import com.ppc.mm.nickprodmetacomparing.entity.NickMetadataCompare;
+import com.ppc.mm.nickprodmetacomparing.entity.NickProdMetaCompareEntityMar25;
 import com.ppc.mm.nickprodmetacomparing.entity.NickProdMetadataUpdateMarch25;
+import com.ppc.mm.nickprodreporting.entity.MMInboundTabularReport;
 import org.hibernate.Session;
 import org.hibernate.SessionFactory;
 import org.hibernate.Transaction;
@@ -261,5 +264,77 @@ public class MetadataDaoImpl implements MetadataDao {
             log.error("Error in getId =  {}",e.getMessage());
         }
         return 0;
+    }
+
+    @Override
+    public List<NickProdMetadataUpdateMarch25> getMetaDumpDataForComparing() {
+        log.info(" in dao getMetaDumpDataForComparing");
+
+        List<NickProdMetadataUpdateMarch25> nickProdMetadataUpdateMarch25List = null;
+
+        try (Session session = sessionFactory.openSession()){
+
+
+            int MAX_RESULT = Integer.parseInt(environment.getRequiredProperty("maxResultForMetadataCompare"));
+
+            CriteriaBuilder builder = session.getCriteriaBuilder();
+            CriteriaQuery<NickProdMetadataUpdateMarch25> criteria = builder.createQuery(NickProdMetadataUpdateMarch25.class);
+            Root<NickProdMetadataUpdateMarch25> root = criteria.from(NickProdMetadataUpdateMarch25.class);
+
+            Predicate statusPredicate = builder.isNull(root.get("entityId"));
+            criteria.select(root).where(statusPredicate);
+
+            criteria.orderBy(builder.asc(root.get("id")));
+
+            Query<NickProdMetadataUpdateMarch25> squery = session.createQuery(criteria);
+
+            nickProdMetadataUpdateMarch25List = squery.setMaxResults(MAX_RESULT).getResultList();
+
+        }catch(Exception e){
+            log.info("Error in getMetaDumpDataForComparing   ",e);
+            //throw new RuntimeException(e.getMessage());
+        }
+
+        return nickProdMetadataUpdateMarch25List;
+
+
+    }
+
+    @Override
+    public Long saveEntity(NickProdMetaCompareEntityMar25 uploadMsgEntity) {
+        Transaction transaction = null;
+        Long generatedId = null;
+        try (Session session = sessionFactory.openSession()) {
+            transaction = session.beginTransaction();
+            session.saveOrUpdate(uploadMsgEntity);
+
+            //String sql = "SELECT LAST_INSERT_ID()";
+            //generatedId = ((Number) session.createNativeQuery(sql).getSingleResult()).longValue();
+
+            transaction.commit();
+            generatedId = 0L;
+        } catch (Exception e) {
+            if (transaction != null) {
+                transaction.rollback();
+            }
+            log.error("Error in saveEntity  {} ", e.getMessage());
+        }
+        return generatedId;
+    }
+
+    @Override
+    public void saveTabular(List<NPMetaCompareTabularDataMar25> tabularReports) {
+        log.info("saveTabular ");
+        Transaction transaction = null;
+        try (Session session = sessionFactory.openSession()){
+            transaction = session.beginTransaction();
+            for (NPMetaCompareTabularDataMar25 report : tabularReports){
+                session.save(report);
+            }
+            transaction.commit();
+        }catch(Exception e){
+            log.info("Error in saveTabular   {} ",e.getMessage());
+            //throw new RuntimeException(e.getMessage());
+        }
     }
 }

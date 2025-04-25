@@ -1,7 +1,9 @@
 package com.ppc.mm.nickprodmetacomparing.service;
 
 import com.ppc.mm.nickprodmetacomparing.dao.MetadataDao;
+import com.ppc.mm.nickprodmetacomparing.entity.NPMetaCompareTabularDataMar25;
 import com.ppc.mm.nickprodmetacomparing.entity.NickMetadataCompare;
+import com.ppc.mm.nickprodmetacomparing.entity.NickProdMetaCompareEntityMar25;
 import com.ppc.mm.nickprodmetacomparing.entity.NickProdMetadataUpdateMarch25;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -56,5 +58,20 @@ public class MetadataServiceImpl implements MetadataService {
 
     public Integer getId(String condition, String tableName, String columnSelect, String searchCol) {
         return metadataDao.getId(condition, tableName, columnSelect, searchCol);
+    }
+
+    @Override
+    public List<NickProdMetadataUpdateMarch25> getMetaDumpDataForComparing() {
+        return metadataDao.getMetaDumpDataForComparing();
+    }
+
+    @Override
+    public Long saveEntity(NickProdMetaCompareEntityMar25 uploadMsgEntity) {
+        return metadataDao.saveEntity(uploadMsgEntity);
+    }
+
+    @Override
+    public void saveTabular(List<NPMetaCompareTabularDataMar25> tabularReports) {
+        metadataDao.saveTabular(tabularReports);
     }
 }

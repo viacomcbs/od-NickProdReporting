@@ -2,11 +2,11 @@ package com.ppc.mm.nickprodreporting.dao;
 
 import com.ppc.mm.common.util.Constants;
 import com.ppc.mm.nickprodmessaging.entity.AssetMetadata;
-import com.ppc.mm.nickprodmessaging.entity.MMInboundQueue;
 import com.ppc.mm.nickprodmessaging.entity.NickProdAssetMetadata;
 import com.ppc.mm.nickprodmessaging.entity.NickProdAssetMetadata2;
+import com.ppc.mm.nickprodmetacomparing.entity.NickProdMetaValidation25;
+import com.ppc.mm.nickprodmetacomparing.entity.NickProdMetadataUpdateMarch25;
 import com.ppc.mm.nickprodreporting.entity.*;
-import org.apache.commons.lang3.StringUtils;
 import org.hibernate.Session;
 import org.hibernate.SessionFactory;
 import org.hibernate.Transaction;
@@ -632,6 +632,161 @@ public class ReportingDAOImpl extends AbstractDAO implements ReportingDAO{
             logger.error("Error in updateUoisNew   {} ",e.getMessage());
 
         }
+    }
+
+    @Override
+    public List<NickProdMetaValidation25> getValidationReport() {
+
+        List<NickProdMetaValidation25> reports = null;
+
+        try (Session session = sessionFactory.openSession()){
+
+
+            int MAX_RESULT = Integer.parseInt(environment.getRequiredProperty("reprocess"));
+
+            CriteriaBuilder builder = session.getCriteriaBuilder();
+            CriteriaQuery<NickProdMetaValidation25> criteria = builder.createQuery(NickProdMetaValidation25.class);
+            Root<NickProdMetaValidation25> root = criteria.from(NickProdMetaValidation25.class);
+
+            Predicate processed = builder.isNull(root.get("processed"));
+
+            criteria.select(root).where( processed);
+
+            criteria.orderBy(builder.asc(root.get("id")));
+
+            Query<NickProdMetaValidation25> squery = session.createQuery(criteria);
+
+            reports = squery.setMaxResults(MAX_RESULT).getResultList();
+
+        }catch(Exception e){
+            logger.info("Error in getValidationReport   {} ",e.getMessage());
+            //throw new RuntimeException(e.getMessage());
+        }
+
+        return reports;
+    }
+
+    @Override
+    public void saveObject(NickProdMetaValidation25 nickObject) {
+        Transaction transaction = null;
+        try (Session session = sessionFactory.openSession()){
+
+            transaction = session.beginTransaction();
+
+            session.saveOrUpdate(nickObject);
+
+            transaction.commit();
+
+        } catch (Exception e) {
+            logger.error("Error in saveObject   {} ",e.getMessage());
+            //throw new RuntimeException(e.getMessage());
+        }
+    }
+
+
+    @Override
+    public void updateMetadata(String sent, String otid, String column) {
+
+        logger.info("updateMetadata in Dao");
+        Transaction transaction = null;
+        try (Session session = sessionFactory.openSession()){
+            transaction = session.beginTransaction();
+
+//            String updateOriginal = "update uois set is_latest_version = 'N' where uoi_id = :objectId";
+            String updateOriginal = "update NICK_PROD_ASSET_METADATA set "+column+"=:sent where uoi_id = :objectId";
+            session.createNativeQuery(updateOriginal).setParameter("sent", sent).setParameter("objectId", otid).executeUpdate();
+
+//            String updateLatest = "update uois set logical_uoi_id=:originalAsset, version=2, is_latest_version = 'Y' where uoi_id = :updatedAsset";
+            String updateLatest = "Insert into INDEX_WORKQUEUE Values (INDEX_WORKQUEUE_ID_SEQ.nextval, :objectId, 'UPDATE',113, 'NONE',sysdate)";
+            session.createNativeQuery(updateLatest).setParameter("objectId", otid).executeUpdate();
+
+
+            transaction.commit();
+        } catch (Exception e) {
+            if(transaction != null){
+                transaction.rollback();
+            }
+            logger.error("Error in updateUoisNew   {} ",e.getMessage());
+
+        }
+
+ /*       public void addToIndexer(String uoiId) {
+            logger.info("addToIndexer");
+            Transaction transaction = null;
+            try (Session session = sessionFactory.openSession()){
+
+                transaction = session.beginTransaction();
+
+                String updateOriginal = "Insert into INDEX_WORKQUEUE Values (INDEX_WORKQUEUE_ID_SEQ.nextval, :objectId, 'UPDATE',113, 'NONE',sysdate)";
+
+                session.createNativeQuery(updateOriginal).setParameter("objectId", uoiId).executeUpdate();
+
+
+                transaction.commit();
+            } catch (Exception e) {
+                if(transaction != null){
+                    transaction.rollback();
+                }
+                logger.error("Error in addToIndexer   {} ",e.getMessage());
+
+            }
+        }*/
+    }
+
+    @Override
+    public void updateMetadata2(String sent, String otid, String column) {
+        logger.info("updateMetadata2 in Dao");
+        Transaction transaction = null;
+        try (Session session = sessionFactory.openSession()){
+            transaction = session.beginTransaction();
+
+//            String updateOriginal = "update uois set is_latest_version = 'N' where uoi_id = :objectId";
+            String updateOriginal = "update NICK_PROD_ASSET_METATDATA2 set "+column+"=:sent where uoi_id = :objectId";
+            session.createNativeQuery(updateOriginal).setParameter("sent", sent).setParameter("objectId", otid).executeUpdate();
+
+//            String updateLatest = "update uois set logical_uoi_id=:originalAsset, version=2, is_latest_version = 'Y' where uoi_id = :updatedAsset";
+            String updateLatest = "Insert into INDEX_WORKQUEUE Values (INDEX_WORKQUEUE_ID_SEQ.nextval, :objectId, 'UPDATE',113, 'NONE',sysdate)";
+            session.createNativeQuery(updateLatest).setParameter("objectId", otid).executeUpdate();
+
+
+            transaction.commit();
+        } catch (Exception e) {
+            if(transaction != null){
+                transaction.rollback();
+            }
+            logger.error("Error in updateMetadata2   {} ",e.getMessage());
+
+        }
+
+    }
+
+    @Override
+    public NickProdMetadataUpdateMarch25 getMetadataFromDump(String otid) {
+
+        NickProdMetadataUpdateMarch25 nickProdMetadataUpdateMarch25 = null;
+
+        try (Session session = sessionFactory.openSession()){
+
+
+            CriteriaBuilder builder = session.getCriteriaBuilder();
+            CriteriaQuery<NickProdMetadataUpdateMarch25> criteria = builder.createQuery(NickProdMetadataUpdateMarch25.class);
+            Root<NickProdMetadataUpdateMarch25> root = criteria.from(NickProdMetadataUpdateMarch25.class);
+
+            Predicate fromOtid = builder.equal(root.get("otid"),otid);
+            criteria.select(root).where(fromOtid);
+
+            criteria.orderBy(builder.asc(root.get("id")));
+
+            Query<NickProdMetadataUpdateMarch25> squery = session.createQuery(criteria);
+
+            nickProdMetadataUpdateMarch25 = squery.getSingleResult();
+
+        }catch(Exception e){
+            logger.info("Error in getMetadataFromDump   {} ",e);
+            //throw new RuntimeException(e.getMessage());
+        }
+
+        return nickProdMetadataUpdateMarch25;
     }
 
 

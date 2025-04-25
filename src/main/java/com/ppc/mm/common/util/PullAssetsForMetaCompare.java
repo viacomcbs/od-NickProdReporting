@@ -2,6 +2,7 @@ package com.ppc.mm.common.util;
 
 import com.artesia.common.exception.BaseTeamsException;
 import com.ppc.mm.nickprodmetacomparing.entity.NickMetadataCompare;
+import com.ppc.mm.nickprodmetacomparing.entity.NickProdMetaValidation25;
 import com.ppc.mm.nickprodmetacomparing.entity.NickProdMetadataUpdateMarch25;
 import com.ppc.mm.nickprodmetacomparing.util.MetadataProcessor;
 import org.apache.commons.collections4.CollectionUtils;
@@ -79,4 +80,41 @@ public class PullAssetsForMetaCompare {
         LOG.info("in performMetadataUpdate <-----------");
 
     }
+
+
+    @Scheduled(fixedDelay = 900*1000)
+    @Async
+    public void getValidationReport() {
+        LOG.info("in getValidationReport --------->");
+
+        List<NickProdMetaValidation25> nickObjects =	processor.getValidationReport();
+        LOG.info("size in scheduler {}",nickObjects.size());
+        if (!CollectionUtils.isEmpty(nickObjects)){
+
+            //LOG.info(nickObjects.get(0).toString());
+            processor.validateAndUpdate(nickObjects);
+        }
+
+        LOG.info("in getValidationReport <-----------");
+
+    }
+
+
+    @Scheduled(fixedDelay = 900*1000)
+    @Async
+    public void performMetadataCompare() {
+        LOG.info("in performMetadataCompare --------->");
+
+        List<NickProdMetadataUpdateMarch25> nickObjects =	processor.getMetaDumpDataForComparing();
+        LOG.info("size in scheduler {}",nickObjects.size());
+        if (!CollectionUtils.isEmpty(nickObjects)){
+
+            //LOG.info(nickObjects.get(0).toString());
+            processor.stageMetadata(nickObjects);
+        }
+
+        LOG.info("in performMetadataCompare <-----------");
+
+    }
+
 }

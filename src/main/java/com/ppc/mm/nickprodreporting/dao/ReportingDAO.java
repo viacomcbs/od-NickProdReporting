@@ -3,6 +3,8 @@ package com.ppc.mm.nickprodreporting.dao;
 import com.ppc.mm.nickprodmessaging.entity.AssetMetadata;
 import com.ppc.mm.nickprodmessaging.entity.NickProdAssetMetadata;
 import com.ppc.mm.nickprodmessaging.entity.NickProdAssetMetadata2;
+import com.ppc.mm.nickprodmetacomparing.entity.NickProdMetaValidation25;
+import com.ppc.mm.nickprodmetacomparing.entity.NickProdMetadataUpdateMarch25;
 import com.ppc.mm.nickprodreporting.entity.*;
 import org.springframework.stereotype.Component;
 
@@ -62,4 +64,14 @@ void saveResponse(MMInboundResponse inboundResponse);
     List<NickObjects> getNickObjectsForReprocess(String yes);
 
     void updateUoisNew(String uoiId1, String uoiId2);
+
+    List<NickProdMetaValidation25> getValidationReport();
+
+    void saveObject(NickProdMetaValidation25 nickObject);
+
+    void updateMetadata(String sent, String otid, String column);
+
+    void updateMetadata2(String sent, String otid, String column);
+
+    NickProdMetadataUpdateMarch25 getMetadataFromDump(String otid);
 }

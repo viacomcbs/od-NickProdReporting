@@ -1,6 +1,8 @@
 package com.ppc.mm.nickprodmetacomparing.service;
 
+import com.ppc.mm.nickprodmetacomparing.entity.NPMetaCompareTabularDataMar25;
 import com.ppc.mm.nickprodmetacomparing.entity.NickMetadataCompare;
+import com.ppc.mm.nickprodmetacomparing.entity.NickProdMetaCompareEntityMar25;
 import com.ppc.mm.nickprodmetacomparing.entity.NickProdMetadataUpdateMarch25;
 import org.springframework.stereotype.Component;
 
@@ -26,4 +28,9 @@ public interface MetadataService {
 
     Integer getId(String condition, String tableName, String columnSelect, String searchCol);
 
+    List<NickProdMetadataUpdateMarch25> getMetaDumpDataForComparing();
+
+    Long saveEntity(NickProdMetaCompareEntityMar25 uploadMsgEntity);
+
+    void saveTabular(List<NPMetaCompareTabularDataMar25> tabularReports);
 }

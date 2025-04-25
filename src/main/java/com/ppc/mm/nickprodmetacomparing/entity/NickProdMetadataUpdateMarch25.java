@@ -31,6 +31,8 @@ public class NickProdMetadataUpdateMarch25 {
     @Column(name = "ERROR_MSG", length = 2000)
     private String errorMsg;
 
+    @Column(name = "BATCH")
+    private String batch;
     // Getters and Setters
 
     public Long getId() {
@@ -89,6 +91,14 @@ public class NickProdMetadataUpdateMarch25 {
         this.errorMsg = errorMsg;
     }
 
+    public String getBatch() {
+        return batch;
+    }
+
+    public void setBatch(String batch) {
+        this.batch = batch;
+    }
+
     @Override
     public String toString() {
         return "NickProdMetadataUpdateMarch25{" +
@@ -99,6 +109,7 @@ public class NickProdMetadataUpdateMarch25 {
                 ", processedDate=" + processedDate +
                 ", entityId='" + entityId + '\'' +
                 ", errorMsg='" + errorMsg + '\'' +
+                ", batch='" + batch + '\'' +
                 '}';
     }
 }

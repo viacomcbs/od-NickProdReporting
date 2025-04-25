@@ -3,6 +3,8 @@ package com.ppc.mm.nickprodreporting.service;
 import com.ppc.mm.nickprodmessaging.entity.AssetMetadata;
 import com.ppc.mm.nickprodmessaging.entity.NickProdAssetMetadata;
 import com.ppc.mm.nickprodmessaging.entity.NickProdAssetMetadata2;
+import com.ppc.mm.nickprodmetacomparing.entity.NickProdMetaValidation25;
+import com.ppc.mm.nickprodmetacomparing.entity.NickProdMetadataUpdateMarch25;
 import com.ppc.mm.nickprodreporting.dao.ReportingDAO;
 import com.ppc.mm.nickprodreporting.entity.*;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -153,5 +155,30 @@ public class ReportingServiceImpl implements ReportingService{
     @Override
     public void updateUoisNew(String uoiId1, String uoiId2) {
         reportingDAO.updateUoisNew(uoiId1, uoiId2);
+    }
+
+    @Override
+    public List<NickProdMetaValidation25> getValidationReport() {
+        return reportingDAO.getValidationReport();
+    }
+
+    @Override
+    public void saveObject(NickProdMetaValidation25 nickObject) {
+        reportingDAO.saveObject(nickObject);
+    }
+
+    @Override
+    public void updateMetadataFromReprocess(String sent, String otid, String column) {
+        reportingDAO.updateMetadata(sent, otid, column);
+    }
+
+    @Override
+    public void updateMetadata2FromReprocess(String sent, String otid, String column) {
+        reportingDAO.updateMetadata2(sent, otid, column);
+    }
+
+    @Override
+    public NickProdMetadataUpdateMarch25 getMetadataFromDump(String otid) {
+        return reportingDAO.getMetadataFromDump(otid);
     }
 }
