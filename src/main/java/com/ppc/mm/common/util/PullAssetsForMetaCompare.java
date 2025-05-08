@@ -81,7 +81,7 @@ public class PullAssetsForMetaCompare {
 
     }
 
-
+/*
     @Scheduled(fixedDelay = 900*1000)
     @Async
     public void getValidationReport() {
@@ -98,8 +98,8 @@ public class PullAssetsForMetaCompare {
         LOG.info("in getValidationReport <-----------");
 
     }
-
-
+*/
+/* For staging json metadata
     @Scheduled(fixedDelay = 900*1000)
     @Async
     public void performMetadataCompare() {
@@ -116,5 +116,5 @@ public class PullAssetsForMetaCompare {
         LOG.info("in performMetadataCompare <-----------");
 
     }
-
+*/
 }

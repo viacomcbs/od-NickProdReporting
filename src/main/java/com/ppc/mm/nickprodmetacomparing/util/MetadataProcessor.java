@@ -993,13 +993,15 @@ public class MetadataProcessor {
     }
 
     public void stageMetadata(List<NickProdMetadataUpdateMarch25> nickObjects) {
-
-        log.info("stage metadata {}", nickObjects.size());
+        int count = 0;
+        //log.info("stage metadata {}", nickObjects.size());
         for (NickProdMetadataUpdateMarch25 nickObject : nickObjects) {
+            log.info("stageMetadata instance for id {} count {}",nickObject.getId(), count++);
+
             NickProdUploadMsgInboundEntity entity = mapJsonToMetaObject(nickObject);
 
             if (entity != null) {
-                log.info("Entity is not null");
+          //      log.info("Entity is not null");
                 Long entityId = saveMetadataEntity(entity, nickObject.getId(), nickObject.getOtid());
                 if (entityId != null) {
                     nickObject.setEntityId(String.valueOf(entityId));
@@ -1016,7 +1018,7 @@ public class MetadataProcessor {
 
     private Long saveMetadataEntity(NickProdUploadMsgInboundEntity entity, Long id, String otid) {
 
-        log.info("In saveInboundEntity for id {} ",id);
+        //log.info("In saveInboundEntity for id {} ",id);
         NickProdMetaCompareEntityMar25 uploadMsgEntity = new NickProdMetaCompareEntityMar25();
         uploadMsgEntity.setQueueId(Math.toIntExact(id));//----Int
 
@@ -1082,7 +1084,7 @@ public class MetadataProcessor {
         Optional<Material> materialOptional = Optional.ofNullable(entity.getMaterial());
         List<NPMetaCompareTabularDataMar25> tabularReports = new ArrayList<>();
         if(materialOptional.isPresent()) {
-            log.info("Materials present");
+        //    log.info("Materials present");
 
             uploadMsgEntity.setMaterial(Constants.YES);
             if(Constants.YES.equals(entity.getMaterial().getRemoveAll())) {
@@ -1117,7 +1119,7 @@ public class MetadataProcessor {
 
         Optional<PostEpisode> postEpsOptional = Optional.ofNullable(entity.getPostEpisodeID());
         if(postEpsOptional.isPresent()) {
-            log.info("POst Episode present");
+        //    log.info("POst Episode present");
 
             uploadMsgEntity.setPostEpisodeID(Constants.YES);
             if(Constants.YES.equals(entity.getPostEpisodeID().getRemoveAll())) {
@@ -1156,7 +1158,7 @@ public class MetadataProcessor {
 
         Optional<ProdShow> prodShowOptional = Optional.ofNullable(entity.getProdShowID());
         if(prodShowOptional.isPresent()) {
-            log.info("ProdShow present");
+        //    log.info("ProdShow present");
 
             uploadMsgEntity.setProdShowID(Constants.YES);
             if(Constants.YES.equals(entity.getProdShowID().getRemoveAll())) {
@@ -1193,7 +1195,7 @@ public class MetadataProcessor {
 
         Optional<Keyword> keywordwOptional = Optional.ofNullable(entity.getKeywords());
         if(keywordwOptional.isPresent()) {
-            log.info("Keywords present");
+        //    log.info("Keywords present");
 
             uploadMsgEntity.setKeywords(Constants.YES);
             if(Constants.YES.equals(entity.getKeywords().getRemoveAll())) {
@@ -1235,7 +1237,7 @@ public class MetadataProcessor {
 
     private NickProdUploadMsgInboundEntity mapJsonToMetaObject(NickProdMetadataUpdateMarch25 nickObject) {
 
-        log.info("MapJsonToMetaObject instance for id {} ",nickObject.getId());
+        //log.info("MapJsonToMetaObject instance for id {} ",nickObject.getId());
         if (mapper == null) {
             mapper = new ObjectMapper();
         }

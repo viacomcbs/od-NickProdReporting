@@ -35,6 +35,12 @@ public class NickProdMetadataUpdateMarch25 {
     private String batch;
     // Getters and Setters
 
+    @Column(name = "IS_VALID")
+    private String isValid;
+
+    @Column(name = "VALID_ERROR")
+    private String validError;
+
     public Long getId() {
         return id;
     }
@@ -97,6 +103,22 @@ public class NickProdMetadataUpdateMarch25 {
 
     public void setBatch(String batch) {
         this.batch = batch;
+    }
+
+    public String getIsValid() {
+        return isValid;
+    }
+
+    public void setIsValid(String isValid) {
+        this.isValid = isValid;
+    }
+
+    public String getValidError() {
+        return validError;
+    }
+
+    public void setValidError(String validError) {
+        this.validError = validError;
     }
 
     @Override

@@ -324,7 +324,7 @@ public class MetadataDaoImpl implements MetadataDao {
 
     @Override
     public void saveTabular(List<NPMetaCompareTabularDataMar25> tabularReports) {
-        log.info("saveTabular ");
+        //log.info("saveTabular ");
         Transaction transaction = null;
         try (Session session = sessionFactory.openSession()){
             transaction = session.beginTransaction();
