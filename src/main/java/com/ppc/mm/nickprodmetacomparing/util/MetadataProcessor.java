@@ -12,7 +12,6 @@ import com.artesia.security.SecuritySession;
 import com.artesia.security.session.services.AuthenticationServices;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.ppc.mm.common.util.Constants;
 import com.ppc.mm.nickprodmessaging.util.*;
 import com.ppc.mm.nickprodmetacomparing.entity.NickMetadataCompare;
 import com.ppc.mm.nickprodmetacomparing.entity.NickProdMetadataUpdateMarch25;
@@ -20,6 +19,7 @@ import com.ppc.mm.nickprodmetacomparing.service.MetadataService;
 import com.ppc.mm.nickprodreporting.service.ReportingService;
 import com.ppc.mm.nickprodreporting.service.ReportingServiceImpl;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.math.NumberUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -107,7 +107,7 @@ public class MetadataProcessor {
     }
 
     public void updateMetadata(List<NickProdMetadataUpdateMarch25> nickObjects) throws BaseTeamsException {
-        log.info("in update metadata ");
+        //log.info("in update metadata ");
 
         SecuritySession securitySession = null;
 
@@ -115,25 +115,27 @@ public class MetadataProcessor {
             String userName = environment.getRequiredProperty("nickprodAdminUserName");
             String password = environment.getRequiredProperty("nickprodAdminPassword");
 
+//            log.info("userName : {}",userName);
+//            log.info("password : {}",password);
             securitySession = AuthenticationServices.getInstance().login(userName, password);
-
+            int count = 0;
             for (NickProdMetadataUpdateMarch25 nickObject : nickObjects) {
-                log.info("updating metadata {} ",nickObject.getOtid());
+                log.info("updating metadata {} {}",nickObject.getOtid(), count++);
                 mapToJson(nickObject, securitySession);
             }
 
-        } catch (Exception e) {
-            log.error("Error in creating session {}",e.getMessage());
+        } catch (BaseTeamsException e) {
+            log.error("Error in creating session {}",e.getDebugMessage());
         } finally {
             if (securitySession != null) {
                 AuthenticationServices.getInstance().logout(securitySession);
             }
         }
 
-
     }
 
     private void mapToJson(NickProdMetadataUpdateMarch25 nickObject, SecuritySession securitySession) {
+        //log.info("mapToJson {} ",nickObject.getOtid());
         if (mapper == null) {
             mapper = new ObjectMapper();
         }
@@ -146,7 +148,12 @@ public class MetadataProcessor {
             nickObject.setProcessed("Y");
             nickObject.setProcessedDate(new Date());
             entity.setOtid(nickObject.getOtid());
-            updateMetadata(entity,securitySession);
+            String message = updateMetadata(entity,securitySession);
+
+            if (StringUtils.isNotBlank(message)){
+                nickObject.setProcessed("N");
+                nickObject.setErrorMsg(message);
+            }
 
         } catch (JsonProcessingException e) {
             //throw new RuntimeException(e);
@@ -157,56 +164,63 @@ public class MetadataProcessor {
 
     }
 
-    private void updateMetadata(NickProdUploadMsgInboundEntity messageEntity, SecuritySession securitySession) {
+    private String updateMetadata(NickProdUploadMsgInboundEntity messageEntity, SecuritySession securitySession) {
 
-    log.info("in updateMetadata {} ",messageEntity.getOtid());
+        //log.info("in updateMetadata {} ",messageEntity.getOtid());
 
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("MM/dd/yyyy");
         String conditionCol = "";
         String searchCol = "";
+        String message = "";
 
         List<MetadataField> metadataFields = new ArrayList<>();
         AssetIdentifier[] assetIdentifiers = new AssetIdentifier[1];
 
         try{
+            //deletePreviousMetadata(messageEntity.getOtid());
 
             Asset asset = new Asset(new AssetIdentifier(messageEntity.getOtid()));
-            log.info("Asset created {}",asset.getAssetId().asString());
+            //log.info("Asset created {}",asset.getAssetId().asString());
             assetIdentifiers[0] = asset.getAssetId();
+            if (asset.isLocked()){
+                message = "Asset is locked";
+                log.info(asset.getContentLockStateUserName());
 
-            log.info("Before locking asset ");
-            AssetServices.getInstance().lockAsset(asset.getAssetId(), securitySession);
-            log.info("Asset Locked {}",asset.getAssetId());
-            AssetMetadataServices metadataServices = AssetMetadataServices.getInstance();
-
-            MetadataField fmQueueField = new MetadataField(new TeamsIdentifier("CUSTOM.NICKPROD.FMQUEUEID"));
-
-            if(StringUtils.isNotBlank(messageEntity.getFmQueueId())) {
-                //log.info("FMQUEUEID {}", messageEntity.getFmQueueId());
-                fmQueueField.setValue(messageEntity.getFmQueueId());
-                metadataFields.add(fmQueueField);
             } else {
-                if (fmQueueField.getValue() != null){
-                    fmQueueField.setValue(null);
+
+                //log.info("Before locking asset ");
+                AssetServices.getInstance().lockAsset(asset.getAssetId(), securitySession);
+                //log.info("Asset Locked {}", asset.getAssetId());
+                AssetMetadataServices metadataServices = AssetMetadataServices.getInstance();
+
+                MetadataField fmQueueField = new MetadataField(new TeamsIdentifier("CUSTOM.NICKPROD.FMQUEUEID"));
+
+                if (StringUtils.isNotBlank(messageEntity.getFmQueueId())) {
+                    //  log.info("FMQUEUEID {}", messageEntity.getFmQueueId());
+                    fmQueueField.setValue(messageEntity.getFmQueueId());
                     metadataFields.add(fmQueueField);
+                } else {
+                    if (fmQueueField.getValue() != null) {
+                        fmQueueField.setValue(null);
+                        metadataFields.add(fmQueueField);
+                    }
                 }
-            }
 
-            MetadataField categoryField = new MetadataField(new TeamsIdentifier("CUSTOM.EMBEDDED.NICK PROD CATEGORY"));
+                MetadataField categoryField = new MetadataField(new TeamsIdentifier("CUSTOM.EMBEDDED.NICK PROD CATEGORY"));
 
-            if(StringUtils.isNotBlank(messageEntity.getCategory())
-                    && !REMOVE_VALUE.equals(messageEntity.getCategory())) {
-                //log.info("Category {}", messageEntity.getCategory());
-                        categoryField.setValue(null);
-                        categoryField.setValue(messageEntity.getCategory());
-
-                    metadataFields.add(categoryField);
-            } else {
-                if (categoryField.getValue() != null){
+                if (StringUtils.isNotBlank(messageEntity.getCategory())
+                        && !REMOVE_VALUE.equals(messageEntity.getCategory())) {
+                    //log.info("Category {}", messageEntity.getCategory());
                     categoryField.setValue(null);
+                    categoryField.setValue(messageEntity.getCategory());
+
                     metadataFields.add(categoryField);
+                } else {
+                    if (categoryField.getValue() != null) {
+                        categoryField.setValue(null);
+                        metadataFields.add(categoryField);
+                    }
                 }
-            }
 //todo: check in each batch if metadata is present in table
   /*          if(StringUtils.isNotBlank(messageEntity.getCondition())) {
                 Integer conditionId = nickProdMessagingService.getId(messageEntity.getCondition().toUpperCase(), "NICK_PROD_LKP_CONDITION", "ID", "VALUE");
@@ -264,50 +278,49 @@ public class MetadataProcessor {
                 metadataFields.add(appraisedValField);
             }
 */
-            MetadataField artistValField = new MetadataField(new TeamsIdentifier("CUSTOM.EMBEDDED.NICK PROD ARTISTS"));
+                MetadataField artistValField = new MetadataField(new TeamsIdentifier("CUSTOM.EMBEDDED.NICK PROD ARTISTS"));
 
-            if(StringUtils.isNotBlank(messageEntity.getArtists()) && !REMOVE_VALUE.equals(messageEntity.getArtists())) {
-log.info("Artists {}", messageEntity.getArtists());
+                if (StringUtils.isNotBlank(messageEntity.getArtists()) && !REMOVE_VALUE.equals(messageEntity.getArtists())) {
+                    //log.info("Artists {}", messageEntity.getArtists());
                     artistValField.setValue(messageEntity.getArtists());
-                metadataFields.add(artistValField);
-            }else {
-                if (artistValField.getValue() != null){
-                    artistValField.setValue(null);
                     metadataFields.add(artistValField);
-                }
-            }
-
-            if(StringUtils.isNotBlank(messageEntity.getAssetName())) {
-                log.info("AssetName {}", messageEntity.getAssetName());
-                TeamsIdentifier assetNameVal = new TeamsIdentifier("CUSTOM.EMBEDDED.NICK PROD ASSET NAME");
-                MetadataField assetNameValField = new MetadataField(assetNameVal);
-                if(REMOVE_VALUE.equals(messageEntity.getAssetName())) {
-                    assetNameValField.setValue(null);
                 } else {
-                    assetNameValField.setValue(messageEntity.getAssetName());
+                    if (artistValField.getValue() != null) {
+                        artistValField.setValue(null);
+                        metadataFields.add(artistValField);
+                    }
                 }
-                metadataFields.add(assetNameValField);
-            }
 
-            /*START - Added by DJ on 02/08/2019, as per Kim's request to add parameter for asset description and store the value to metadata field.*/
-            /***
-             * Not updating embedded fields
-             */
+                if (StringUtils.isNotBlank(messageEntity.getAssetName())) {
+                    // log.info("AssetName {}", messageEntity.getAssetName());
+                    TeamsIdentifier assetNameVal = new TeamsIdentifier("CUSTOM.EMBEDDED.NICK PROD ASSET NAME");
+                    MetadataField assetNameValField = new MetadataField(assetNameVal);
+                    if (REMOVE_VALUE.equals(messageEntity.getAssetName())) {
+                        assetNameValField.setValue(null);
+                    } else {
+                        assetNameValField.setValue(messageEntity.getAssetName());
+                    }
+                    metadataFields.add(assetNameValField);
+                }
 
-            MetadataField assetDescField = new MetadataField(new TeamsIdentifier("ARTESIA.FIELD.ASSET DESCRIPTION"));
+                /***
+                 * Not updating embedded fields
+                 */
 
-            if(StringUtils.isNotBlank(messageEntity.getAssetDescription())
-                    && !REMOVE_VALUE.equals(messageEntity.getAssetDescription())) {
-log.info("AssetDescription {}", messageEntity.getAssetDescription());
-                assetDescField.setValue(messageEntity.getAssetDescription());
-                metadataFields.add(assetDescField);
-            }else {
-                if (assetDescField.getValue() != null){
-                    assetDescField.setValue(null);
+//            MetadataField assetDescField = new MetadataField(new TeamsIdentifier("ARTESIA.FIELD.ASSET DESCRIPTION"));//embedded
+                MetadataField assetDescField = new MetadataField(new TeamsIdentifier("CUSTOM.NICK_PROD_ASSETDESCRIPTION")); //custom
+
+                if (StringUtils.isNotBlank(messageEntity.getAssetDescription())
+                        && !REMOVE_VALUE.equals(messageEntity.getAssetDescription())) {
+                    // log.info("AssetDescription {}", messageEntity.getAssetDescription());
+                    assetDescField.setValue(messageEntity.getAssetDescription());
                     metadataFields.add(assetDescField);
+                } else {
+                    if (assetDescField.getValue() != null) {
+                        assetDescField.setValue(null);
+                        metadataFields.add(assetDescField);
+                    }
                 }
-            }
-            /*START - Added by DJ on 02/08/2019, as per Kim's request to add parameter for asset description and store the value to metadata field.*/
 /*
             if(StringUtils.isNotBlank(messageEntity.getBarcode())) {
                 TeamsIdentifier barcodeVal = new TeamsIdentifier("CUSTOM.NICK PROD BARCODE");
@@ -342,48 +355,53 @@ log.info("AssetDescription {}", messageEntity.getAssetDescription());
                 metadataFields.add(contextualNotesValField);
             }
 */
-            MetadataField creationDateField = new MetadataField(new TeamsIdentifier("CUSTOM.NICK PROD.CREATION DATE"));
+                MetadataField creationDateField = new MetadataField(new TeamsIdentifier("CUSTOM.NICK PROD.CREATION DATE"));
 
-            if(StringUtils.isNotBlank(messageEntity.getCreationDate())
-                    && !REMOVE_VALUE.equals(messageEntity.getCreationDate())) {
-log.info("CreationDate {}", messageEntity.getCreationDate());
+                if (StringUtils.isNotBlank(messageEntity.getCreationDate())
+                        && !REMOVE_VALUE.equals(messageEntity.getCreationDate())) {
+                    //    log.info("CreationDate {}", messageEntity.getCreationDate());
                     creationDateField.setValue(formatter.parse(messageEntity.getCreationDate()));
-                metadataFields.add(creationDateField);
-            }else {
-                if (creationDateField.getValue() != null){
-                    creationDateField.setValue(null);
                     metadataFields.add(creationDateField);
+                } else {
+                    if (creationDateField.getValue() != null) {
+                        creationDateField.setValue(null);
+                        metadataFields.add(creationDateField);
+                    }
                 }
-            }
 
-            MetadataField eicAccessField = new MetadataField(new TeamsIdentifier("CUSTOM.NICK PROD EIC ACCESS"));
+                MetadataField eicAccessField = new MetadataField(new TeamsIdentifier("CUSTOM.NICK PROD EIC ACCESS"));
 
-            if(StringUtils.isNotBlank(messageEntity.getEicAccess())
-                    && !REMOVE_VALUE.equals(messageEntity.getEicAccess())) {
-log.info("EicAccess {}", messageEntity.getEicAccess());
-                    eicAccessField.setValue(messageEntity.getEicAccess());
-                metadataFields.add(eicAccessField);
-            }else {
-                if (eicAccessField.getValue() != null){
-                    eicAccessField.setValue(null);
+                if (StringUtils.isNotBlank(messageEntity.getEicAccess())
+                        && !REMOVE_VALUE.equals(messageEntity.getEicAccess())) {
+                    //  log.info("EicAccess {}", messageEntity.getEicAccess());
+                    String eicAccess = null;
+                    if (messageEntity.getEicAccess().equalsIgnoreCase("Yes")){
+                        eicAccess = "Y";
+                    } else {
+                        eicAccess = "N";
+                    }
+                    eicAccessField.setValue(eicAccess);
                     metadataFields.add(eicAccessField);
+                } else {
+                    if (eicAccessField.getValue() != null) {
+                        eicAccessField.setValue(null);
+                        metadataFields.add(eicAccessField);
+                    }
                 }
-            }
 
-            MetadataField eicCommentsField = new MetadataField(new TeamsIdentifier("CUSTOM.NICK PROD EIC COMMENTS"));
+                MetadataField eicCommentsField = new MetadataField(new TeamsIdentifier("CUSTOM.NICK PROD EIC COMMENTS"));
 
-
-            if(StringUtils.isNotBlank(messageEntity.getEicComments())
-                    && !REMOVE_VALUE.equals(messageEntity.getEicComments())) {
-log.info("EicComments {}", messageEntity.getEicComments());
+                if (StringUtils.isNotBlank(messageEntity.getEicComments())
+                        && !REMOVE_VALUE.equals(messageEntity.getEicComments())) {
+                    // log.info("EicComments {}", messageEntity.getEicComments());
                     eicCommentsField.setValue(messageEntity.getEicComments());
-                metadataFields.add(eicCommentsField);
-            }else {
-                if (eicCommentsField.getValue() != null){
-                    eicCommentsField.setValue(null);
                     metadataFields.add(eicCommentsField);
+                } else {
+                    if (eicCommentsField.getValue() != null) {
+                        eicCommentsField.setValue(null);
+                        metadataFields.add(eicCommentsField);
+                    }
                 }
-            }
 /*
             if(StringUtils.isNotBlank(messageEntity.getEicReview())) {
                 TeamsIdentifier eicReviewVal = new TeamsIdentifier("CUSTOM.NICK PROD EIC REVIEW");
@@ -408,45 +426,54 @@ log.info("EicComments {}", messageEntity.getEicComments());
                 metadataFields.add(eicStatusField);
             }
 */
-            MetadataField fmidField = new MetadataField(new TeamsIdentifier("CUSTOM.EMBEDDED.NICK PROD FMID"));
+                MetadataField fmidField = new MetadataField(new TeamsIdentifier("CUSTOM.EMBEDDED.NICK PROD FMID"));
 
-            if(StringUtils.isNotBlank(messageEntity.getFmid()) && !REMOVE_VALUE.equals(messageEntity.getFmid())) {
-                log.info("FMID {}", messageEntity.getFmid());
-                fmidField.setValue(new BigDecimal(messageEntity.getFmid()));
-                metadataFields.add(fmidField);
-            } else {
-                if (fmidField.getValue() != null){
-                    fmidField.setValue(null);
-                    metadataFields.add(fmidField);
+                if (StringUtils.isNotBlank(messageEntity.getFmid()) && !REMOVE_VALUE.equals(messageEntity.getFmid())) {
+
+                    if (NumberUtils.isCreatable(messageEntity.getFmid())) {
+                        //   log.info("FMID {}", messageEntity.getFmid());
+                        fmidField.setValue(new BigDecimal(messageEntity.getFmid()));
+                        metadataFields.add(fmidField);
+                    } else {
+                        return "FM Id is not number";
+                    }
+                } else {
+                    if (fmidField.getValue() != null) {
+                        fmidField.setValue(null);
+                        metadataFields.add(fmidField);
+                    }
                 }
-            }
 
-            MetadataField firstSeasonField = new MetadataField(new TeamsIdentifier("CUSTOM.EMBEDDED.NICK PROD SEASON"));
+                MetadataField firstSeasonField = new MetadataField(new TeamsIdentifier("CUSTOM.EMBEDDED.NICK PROD SEASON"));
 
-            if(StringUtils.isNotBlank(messageEntity.getFirstSeason())
-                    && !REMOVE_VALUE.equals(messageEntity.getFirstSeason())) {
-log.info("FirstSeason {}", messageEntity.getFirstSeason());
+                if (StringUtils.isNotBlank(messageEntity.getFirstSeason())
+                        && !REMOVE_VALUE.equals(messageEntity.getFirstSeason())) {
+                    //log.info("FirstSeason {}", messageEntity.getFirstSeason());
                     firstSeasonField.setValue(messageEntity.getFirstSeason());
-                metadataFields.add(firstSeasonField);
-            } else {
-                if (firstSeasonField.getValue() != null){
-                    firstSeasonField.setValue(null);
                     metadataFields.add(firstSeasonField);
+                } else {
+                    if (firstSeasonField.getValue() != null) {
+                        firstSeasonField.setValue(null);
+                        metadataFields.add(firstSeasonField);
+                    }
                 }
-            }
-            MetadataField firstShowField = new MetadataField(new TeamsIdentifier("CUSTOM.EMBEDDED.NICK PROD FIRST SHOW"));
+                MetadataField firstShowField = new MetadataField(new TeamsIdentifier("CUSTOM.EMBEDDED.NICK PROD FIRST SHOW"));
 
-            if(StringUtils.isNotBlank(messageEntity.getFirstShow())
-                    && !REMOVE_VALUE.equals(messageEntity.getFirstShow())) {
-log.info("FirstShow {}", messageEntity.getFirstShow());
-                    firstShowField.setValue(new BigDecimal(messageEntity.getFirstShow()));
-                metadataFields.add(firstShowField);
-            } else {
-                if ( firstShowField.getValue() != null){
-                    firstShowField.setValue(null);
-                    metadataFields.add(firstShowField);
+                if (StringUtils.isNotBlank(messageEntity.getFirstShow())
+                        && !REMOVE_VALUE.equals(messageEntity.getFirstShow())) {
+                    if (NumberUtils.isCreatable(messageEntity.getFirstShow())) {
+                        //      log.info("FirstShow {}", messageEntity.getFirstShow());
+                        firstShowField.setValue(new BigDecimal(messageEntity.getFirstShow()));
+                        metadataFields.add(firstShowField);
+                    } else {
+                        return "First Show is not number";
+                    }
+                } else {
+                    if (firstShowField.getValue() != null) {
+                        firstShowField.setValue(null);
+                        metadataFields.add(firstShowField);
+                    }
                 }
-            }
 /*
             if(StringUtils.isNotBlank(messageEntity.getHasDuplicates())) {
                 TeamsIdentifier hasDuplicateVal = new TeamsIdentifier("CUSTOM.NICK PROD HAS DUPLICATES");
@@ -481,19 +508,25 @@ log.info("FirstShow {}", messageEntity.getFirstShow());
                 metadataFields.add(lengthField);
             }
 */
-            MetadataField ncrAccessField = new MetadataField(new TeamsIdentifier("CUSTOM.NICK PROD NCR ACCESS"));
+                MetadataField ncrAccessField = new MetadataField(new TeamsIdentifier("CUSTOM.NICK PROD NCR ACCESS"));
 
-            if(StringUtils.isNotBlank(messageEntity.getNcrAccess())
-                    && !REMOVE_VALUE.equals(messageEntity.getNcrAccess())) {
-log.info("NcrAccess {}", messageEntity.getNcrAccess());
-                    ncrAccessField.setValue(messageEntity.getNcrAccess());
-                metadataFields.add(ncrAccessField);
-            } else {
-                if (ncrAccessField.getValue() != null){
-                    ncrAccessField.setValue(null);
+                if (StringUtils.isNotBlank(messageEntity.getNcrAccess())
+                        && !REMOVE_VALUE.equals(messageEntity.getNcrAccess())) {
+                    //log.info("NcrAccess {}", messageEntity.getNcrAccess());
+                    String NcrAccess = null;
+                    if (messageEntity.getNcrAccess().equalsIgnoreCase("Yes")){
+                        NcrAccess = "Y";
+                    } else {
+                        NcrAccess = "N";
+                    }
+                    ncrAccessField.setValue(NcrAccess);
                     metadataFields.add(ncrAccessField);
+                } else {
+                    if (ncrAccessField.getValue() != null) {
+                        ncrAccessField.setValue(null);
+                        metadataFields.add(ncrAccessField);
+                    }
                 }
-            }
 /*
             if(StringUtils.isNotBlank(messageEntity.getPhysicalArchive())) {
                 TeamsIdentifier physicalAccessVal = new TeamsIdentifier("CUSTOM.NICK PROD PHYSICAL ARCHIVE");
@@ -542,27 +575,31 @@ log.info("NcrAccess {}", messageEntity.getNcrAccess());
 			metadataFields.add(prodIdField);
 		}*/
 
-            if(StringUtils.isNotBlank(messageEntity.getProductionName())) {
-                TeamsIdentifier prodNameVal = new TeamsIdentifier("CUSTOM.EMBEDDED.NICK PROD PRODUCTION NAME");
-                MetadataField prodNameField = new MetadataField(prodNameVal);
-                log.info("ProductionName {}", messageEntity.getProductionName());
-                if(REMOVE_VALUE.equals(messageEntity.getProductionName())) {
-                    prodNameField.setValue(null);
-                } else {
-                    prodNameField.setValue(messageEntity.getProductionName());
-                    conditionCol = messageEntity.getProductionName().toUpperCase();
-                    searchCol = "PRODUCTION_NAME";
+                if (StringUtils.isNotBlank(messageEntity.getProductionName())) {
+                    TeamsIdentifier prodNameVal = new TeamsIdentifier("CUSTOM.EMBEDDED.NICK PROD PRODUCTION NAME");
+                    MetadataField prodNameField = new MetadataField(prodNameVal);
+                    // log.info("ProductionName {}", messageEntity.getProductionName());
+                    if (REMOVE_VALUE.equals(messageEntity.getProductionName())) {
+                        prodNameField.setValue(null);
+                    } else {
+                        prodNameField.setValue(messageEntity.getProductionName());
+                        conditionCol = messageEntity.getProductionName().toUpperCase();
+                        searchCol = "PRODUCTION_NAME";
+                    }
+                    metadataFields.add(prodNameField);
                 }
-                metadataFields.add(prodNameField);
-            }
 
-            if(StringUtils.isNotBlank(conditionCol)) {
-                Integer production = metadataService.getId(conditionCol, "NICK_PROD_PRODUCTION_NAME", "ID", searchCol);
-                TeamsIdentifier productionVal = new TeamsIdentifier("CUSTOM.NICK PROD PRODUCTION");
-                MetadataField productionField = new MetadataField(productionVal);
-                productionField.setValue(new BigDecimal(production));
-                metadataFields.add(productionField);
-            }
+                if (StringUtils.isNotBlank(conditionCol)) {
+                    Integer production = metadataService.getId(conditionCol, "NICK_PROD_PRODUCTION_NAME", "ID", searchCol);
+                    if (production == null) {
+                        message = "Production name not found";
+                        return message;
+                    }
+                    TeamsIdentifier productionVal = new TeamsIdentifier("CUSTOM.NICK PROD PRODUCTION");
+                    MetadataField productionField = new MetadataField(productionVal);
+                    productionField.setValue(new BigDecimal(production));
+                    metadataFields.add(productionField);
+                }
 /*
             if(StringUtils.isNotBlank(messageEntity.getProvenance())) {
                 TeamsIdentifier provenanceVal = new TeamsIdentifier("CUSTOM.NICK PROD PROVENANCE");
@@ -621,32 +658,32 @@ log.info("NcrAccess {}", messageEntity.getNcrAccess());
                 metadataFields.add(territoryField);
             }
 */
-            MetadataField stageField = new MetadataField(new TeamsIdentifier("CUSTOM.EMBEDDED.NICK PROD STAGE"));
+                MetadataField stageField = new MetadataField(new TeamsIdentifier("CUSTOM.EMBEDDED.NICK PROD STAGE"));
 
-            if(StringUtils.isNotBlank(messageEntity.getStage())
-                    && !REMOVE_VALUE.equals(messageEntity.getStage())) {
-log.info("Stage {}", messageEntity.getStage());
+                if (StringUtils.isNotBlank(messageEntity.getStage())
+                        && !REMOVE_VALUE.equals(messageEntity.getStage())) {
+                    //log.info("Stage {}", messageEntity.getStage());
                     stageField.setValue(messageEntity.getStage());
-                metadataFields.add(stageField);
-            } else {
-                if (stageField.getValue() != null){
-                    stageField.setValue(null);
                     metadataFields.add(stageField);
-                }
-            }
-
-
-            if(StringUtils.isNotBlank(messageEntity.getType())) {
-                log.info("Type {}", messageEntity.getType());
-                TeamsIdentifier typeVal = new TeamsIdentifier("CUSTOM.EMBEDDED.NICK PROD TYPE");
-                MetadataField typeField = new MetadataField(typeVal);
-                if(REMOVE_VALUE.equals(messageEntity.getType())) {
-                    typeField.setValue(null);
                 } else {
-                    typeField.setValue(messageEntity.getType());
+                    if (stageField.getValue() != null) {
+                        stageField.setValue(null);
+                        metadataFields.add(stageField);
+                    }
                 }
-                metadataFields.add(typeField);
-            }
+
+
+                if (StringUtils.isNotBlank(messageEntity.getType())) {
+                    // log.info("Type {}", messageEntity.getType());
+                    TeamsIdentifier typeVal = new TeamsIdentifier("CUSTOM.EMBEDDED.NICK PROD TYPE");
+                    MetadataField typeField = new MetadataField(typeVal);
+                    if (REMOVE_VALUE.equals(messageEntity.getType())) {
+                        typeField.setValue(null);
+                    } else {
+                        typeField.setValue(messageEntity.getType());
+                    }
+                    metadataFields.add(typeField);
+                }
 /*
             if(StringUtils.isNotBlank(messageEntity.getWidth())) {
                 TeamsIdentifier widthVal = new TeamsIdentifier("CUSTOM.NICK PROD WIDTH");
@@ -659,106 +696,106 @@ log.info("Stage {}", messageEntity.getStage());
                 metadataFields.add(widthField);
             }
 */
-            MetadataField yearBookField = new MetadataField(new TeamsIdentifier("CUSTOM.EMBEDDED.NICK PROD YEARBOOK"));
+                MetadataField yearBookField = new MetadataField(new TeamsIdentifier("CUSTOM.EMBEDDED.NICK PROD YEARBOOK"));
 
-            if(StringUtils.isNotBlank(messageEntity.getYearbook()) && !REMOVE_VALUE.equals(messageEntity.getYearbook())) {
-log.info("Yearbook {}", messageEntity.getYearbook());
+                if (StringUtils.isNotBlank(messageEntity.getYearbook()) && !REMOVE_VALUE.equals(messageEntity.getYearbook())) {
+                    //   log.info("Yearbook {}", messageEntity.getYearbook());
                     yearBookField.setValue(messageEntity.getYearbook());
                     metadataFields.add(yearBookField);
-            } else {
-                if (yearBookField.getValue() != null){
-                    yearBookField.setValue(null);
-                    metadataFields.add(yearBookField);
+                } else {
+                    if (yearBookField.getValue() != null) {
+                        yearBookField.setValue(null);
+                        metadataFields.add(yearBookField);
+                    }
                 }
-            }
 
-            MetadataField locationField = new MetadataField(new TeamsIdentifier("CUSTOM.EMBEDDED.NICK PROD IMAGELOCATION"));
+                MetadataField locationField = new MetadataField(new TeamsIdentifier("CUSTOM.EMBEDDED.NICK PROD IMAGELOCATION"));
 
-            if(StringUtils.isNotBlank(messageEntity.getLocation()) && !REMOVE_VALUE.equals(messageEntity.getLocation())) {
-log.info("Location {}", messageEntity.getLocation());
+                if (StringUtils.isNotBlank(messageEntity.getLocation()) && !REMOVE_VALUE.equals(messageEntity.getLocation())) {
+                    //   log.info("Location {}", messageEntity.getLocation());
                     locationField.setValue(messageEntity.getLocation());
                     metadataFields.add(locationField);
 
-            } else {
-                if ( locationField.getValue() != null){
-                    locationField.setValue(null);
-                    metadataFields.add(locationField);
-                }
-            }
-
-            log.info("Tabular fields check");
-            Optional<Material> materialOptional = Optional.ofNullable(messageEntity.getMaterial());
-
-            MetadataTableField materialField = (MetadataTableField) metadataServices.retrieveMetadataFieldForAsset(asset.getAssetId(),
-                    new TeamsIdentifier("CUSTOM.NICK PROD MATERIAL ID"), securitySession);
-
-            materialField.clearValues();
-
-            if(materialOptional.isPresent()) {
-log.info("keywords present");
-                if(!CollectionUtils.isEmpty(messageEntity.getMaterial().getAdd())) {
-                    for (String addVal : messageEntity.getMaterial().getAdd()) {
-                        materialField.addValue(addVal);
+                } else {
+                    if (locationField.getValue() != null) {
+                        locationField.setValue(null);
+                        metadataFields.add(locationField);
                     }
                 }
 
-            }
-            metadataFields.add(materialField);
+                //log.info("Tabular fields check");
+                Optional<Material> materialOptional = Optional.ofNullable(messageEntity.getMaterial());
 
-            Optional<PostEpisode> postEpsOptional = Optional.ofNullable(messageEntity.getPostEpisodeID());
+                MetadataTableField materialField = (MetadataTableField) metadataServices.retrieveMetadataFieldForAsset(asset.getAssetId(),
+                        new TeamsIdentifier("CUSTOM.NICK PROD MATERIAL ID"), securitySession);
 
-            MetadataTableField postEpisodeField = (MetadataTableField) metadataServices
-                    .retrieveMetadataFieldForAsset(asset.getAssetId(),
-                            new TeamsIdentifier("CUSTOM.NICK PROD POST EPISODE.POST EPISODE ID"), securitySession);
+                materialField.clearValues();
 
-            postEpisodeField.clearValues();
+                if (materialOptional.isPresent()) {
+                    // log.info("materials present");
+                    if (!CollectionUtils.isEmpty(messageEntity.getMaterial().getAdd())) {
+                        for (String addVal : messageEntity.getMaterial().getAdd()) {
+                            materialField.addValue(addVal);
+                        }
+                    }
 
-            if(postEpsOptional.isPresent()) {
-                log.info("POst Episode present");
+                }
+                metadataFields.add(materialField);
 
-                if(!CollectionUtils.isEmpty(messageEntity.getPostEpisodeID().getAdd())) {
-                    for (String addVal : messageEntity.getPostEpisodeID().getAdd()) {
-                        postEpisodeField.addValue(addVal);
+                Optional<PostEpisode> postEpsOptional = Optional.ofNullable(messageEntity.getPostEpisodeID());
+
+                MetadataTableField postEpisodeField = (MetadataTableField) metadataServices
+                        .retrieveMetadataFieldForAsset(asset.getAssetId(),
+                                new TeamsIdentifier("CUSTOM.NICK PROD POST EPISODE.POST EPISODE ID"), securitySession);
+
+                postEpisodeField.clearValues();
+
+                if (postEpsOptional.isPresent()) {
+                    //  log.info("POst Episode present");
+
+                    if (!CollectionUtils.isEmpty(messageEntity.getPostEpisodeID().getAdd())) {
+                        for (String addVal : messageEntity.getPostEpisodeID().getAdd()) {
+                            postEpisodeField.addValue(addVal);
+                        }
+                    }
+
+                }
+                metadataFields.add(postEpisodeField);
+
+                Optional<ProdShow> prodShowOptional = Optional.ofNullable(messageEntity.getProdShowID());
+
+                MetadataTableField prodShowField = (MetadataTableField) metadataServices
+                        .retrieveMetadataFieldForAsset(asset.getAssetId(),
+                                new TeamsIdentifier("CUSTOM.NICK PROD REUSE PROD SHOW.PROD SHOW ID"), securitySession);
+
+                prodShowField.clearValues();
+
+                if (prodShowOptional.isPresent()) {
+                    //log.info("PROD show present");
+                    if (!CollectionUtils.isEmpty(messageEntity.getProdShowID().getAdd())) {
+                        for (String addVal : messageEntity.getProdShowID().getAdd()) {
+                            prodShowField.addValue(addVal);
+                        }
                     }
                 }
+                metadataFields.add(prodShowField);
 
-            }
-            metadataFields.add(postEpisodeField);
+                Optional<Keyword> keywordwOptional = Optional.ofNullable(messageEntity.getKeywords());
 
-            Optional<ProdShow> prodShowOptional = Optional.ofNullable(messageEntity.getProdShowID());
+                MetadataTableField keywordField = (MetadataTableField) metadataServices
+                        .retrieveMetadataFieldForAsset(asset.getAssetId(),
+                                new TeamsIdentifier("KEYWORD"), securitySession);
+                keywordField.clearValues();
 
-            MetadataTableField prodShowField = (MetadataTableField) metadataServices
-                    .retrieveMetadataFieldForAsset(asset.getAssetId(),
-                            new TeamsIdentifier("CUSTOM.NICK PROD REUSE PROD SHOW.PROD SHOW ID"), securitySession);
-
-            prodShowField.clearValues();
-
-            if(prodShowOptional.isPresent()) {
-                log.info("PROD show present");
-                if(!CollectionUtils.isEmpty(messageEntity.getProdShowID().getAdd())) {
-                    for (String addVal : messageEntity.getProdShowID().getAdd()) {
-                        prodShowField.addValue(addVal);
+                if (keywordwOptional.isPresent()) {
+                    //  log.info("Keywords present");
+                    if (!CollectionUtils.isEmpty(messageEntity.getKeywords().getAdd())) {
+                        for (String addVal : messageEntity.getKeywords().getAdd()) {
+                            keywordField.addValue(addVal);
+                        }
                     }
                 }
-            }
-            metadataFields.add(prodShowField);
-
-            Optional<Keyword> keywordwOptional = Optional.ofNullable(messageEntity.getKeywords());
-
-            MetadataTableField keywordField = (MetadataTableField) metadataServices
-                    .retrieveMetadataFieldForAsset(asset.getAssetId(),
-                            new TeamsIdentifier("KEYWORD"), securitySession);
-            keywordField.clearValues();
-
-            if(keywordwOptional.isPresent()) {
-                log.info("Keywords present");
-                if(!CollectionUtils.isEmpty(messageEntity.getKeywords().getAdd())) {
-                    for (String addVal : messageEntity.getKeywords().getAdd()) {
-                        keywordField.addValue(addVal);
-                    }
-                }
-            }
-            metadataFields.add(keywordField);
+                metadataFields.add(keywordField);
 
 /*
             if(StringUtils.isNotBlank(messageEntity.getRetiredStatus())) {
@@ -790,30 +827,33 @@ log.info("keywords present");
                 metadataFields.add(isRigNameField);
             }
 */
-            MetadataField fileNameCompareField = new MetadataField(new TeamsIdentifier("CUSTOM.NICK PROD FILENAME COMPARE"));
+                MetadataField fileNameCompareField = new MetadataField(new TeamsIdentifier("CUSTOM.NICK PROD FILENAME COMPARE"));
 
-            if(StringUtils.isNotBlank(messageEntity.getFileNameCompare())&&
-                    !REMOVE_VALUE.equals(messageEntity.getFileNameCompare())) {
-
-                fileNameCompareField.setValue(messageEntity.getFileNameCompare());
-                metadataFields.add(fileNameCompareField);
-            } else {
-                if (fileNameCompareField.getValue() != null){
-                    fileNameCompareField.setValue(null);
+                if (StringUtils.isNotBlank(messageEntity.getFileNameCompare()) &&
+                        !REMOVE_VALUE.equals(messageEntity.getFileNameCompare())) {
+                    //    log.info("fileNameCompare {}", messageEntity.getFileNameCompare());
+                    fileNameCompareField.setValue(messageEntity.getFileNameCompare());
                     metadataFields.add(fileNameCompareField);
+                } else {
+                    if (fileNameCompareField.getValue() != null) {
+                        fileNameCompareField.setValue(null);
+                        metadataFields.add(fileNameCompareField);
+                    }
                 }
+
+
+                metadataServices.saveMetadataForAssets(assetIdentifiers,
+                        metadataFields.toArray(new MetadataField[0]), securitySession);
+
+                AssetServices.getInstance().unlockAsset(asset.getAssetId(), securitySession);
+                //log.info("unlock asset");
             }
+        }catch(BaseTeamsException e){
 
-
-            metadataServices.saveMetadataForAssets(assetIdentifiers,
-                    metadataFields.toArray(new MetadataField[0]), securitySession);
-
-            AssetServices.getInstance().unlockAsset(asset.getAssetId(), securitySession);
-log.info("unlock asset");
-        }catch(Exception e){
-
-            log.error("Error occured at savingMetadat - "+e.getMessage());
-
+            log.error("Error occurred at saving Metadata - {}", e.getDebugMessage());
+            message = e.getDebugMessage();
         }
+        return message;
     }
+
 }
