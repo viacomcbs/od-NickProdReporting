@@ -375,7 +375,8 @@ public class MetadataProcessor {
                         && !REMOVE_VALUE.equals(messageEntity.getEicAccess())) {
                     //  log.info("EicAccess {}", messageEntity.getEicAccess());
                     String eicAccess = null;
-                    if (messageEntity.getEicAccess().equalsIgnoreCase("Yes")){
+                    if (messageEntity.getEicAccess().equalsIgnoreCase("Yes")
+                            || messageEntity.getEicAccess().equalsIgnoreCase("Y")) {
                         eicAccess = "Y";
                     } else {
                         eicAccess = "N";
@@ -514,7 +515,8 @@ public class MetadataProcessor {
                         && !REMOVE_VALUE.equals(messageEntity.getNcrAccess())) {
                     //log.info("NcrAccess {}", messageEntity.getNcrAccess());
                     String NcrAccess = null;
-                    if (messageEntity.getNcrAccess().equalsIgnoreCase("Yes")){
+                    if (messageEntity.getNcrAccess().equalsIgnoreCase("Yes")
+                            || messageEntity.getNcrAccess().equalsIgnoreCase("Y")) {
                         NcrAccess = "Y";
                     } else {
                         NcrAccess = "N";
@@ -534,7 +536,8 @@ public class MetadataProcessor {
                         && !REMOVE_VALUE.equals(messageEntity.getPhysicalArchive())) {
 
                     String physicalAccess = null;
-                    if (messageEntity.getPhysicalArchive().equalsIgnoreCase("Yes")){
+                    if (messageEntity.getPhysicalArchive().equalsIgnoreCase("Yes")
+                            || messageEntity.getPhysicalArchive().equalsIgnoreCase("Y")) {
                         physicalAccess = "Y";
                     } else {
                         physicalAccess = "N";
@@ -689,17 +692,18 @@ public class MetadataProcessor {
                     }
                 }
 
+                MetadataField typeField = new MetadataField(new TeamsIdentifier("CUSTOM.EMBEDDED.NICK PROD TYPE"));
 
-                if (StringUtils.isNotBlank(messageEntity.getType())) {
-                    // log.info("Type {}", messageEntity.getType());
-                    TeamsIdentifier typeVal = new TeamsIdentifier("CUSTOM.EMBEDDED.NICK PROD TYPE");
-                    MetadataField typeField = new MetadataField(typeVal);
-                    if (REMOVE_VALUE.equals(messageEntity.getType())) {
-                        typeField.setValue(null);
-                    } else {
-                        typeField.setValue(messageEntity.getType());
-                    }
+                if (StringUtils.isNotBlank(messageEntity.getType()) &&
+                        !REMOVE_VALUE.equals(messageEntity.getType())) {
+
+                    typeField.setValue(messageEntity.getType());
                     metadataFields.add(typeField);
+                } else {
+                    if (typeField.getValue() != null) {
+                        typeField.setValue(null);
+                        metadataFields.add(typeField);
+                    }
                 }
 /*
             if(StringUtils.isNotBlank(messageEntity.getWidth())) {
@@ -814,36 +818,41 @@ public class MetadataProcessor {
                 }
                 metadataFields.add(keywordField);
 
-/*
-            if(StringUtils.isNotBlank(messageEntity.getRetiredStatus())) {
-                TeamsIdentifier isRetiredVal = new TeamsIdentifier("CUSTOM.NICK PROD RETIRED ASSET");
-                MetadataField isRetiredField = new MetadataField(isRetiredVal);
-                if(REMOVE_VALUE.equals(messageEntity.getRetiredStatus())) {
-                    isRetiredField.setValue(null);
-                } else {
-                    if(messageEntity.getRetiredStatus().equalsIgnoreCase("No")){
-                        isRetiredField.setValue("N");
-                    } else if (messageEntity.getRetiredStatus().equalsIgnoreCase("Yes")) {
-                        isRetiredField.setValue("Y");
-                    }else {
-                        isRetiredField.setValue("N");
-                    }
-//                    isRetiredField.setValue(messageEntity.getRetiredStatus());
-                }
-                metadataFields.add(isRetiredField);
-            }
+                MetadataField isRetiredField = new MetadataField(new TeamsIdentifier("CUSTOM.NICK PROD RETIRED ASSET"));
 
-            if(StringUtils.isNotBlank(messageEntity.getRigName())) {
-                TeamsIdentifier isRigVal = new TeamsIdentifier("CUSTOM.NICK PROD.RIG NAME");
-                MetadataField isRigNameField = new MetadataField(isRigVal);
-                if(REMOVE_VALUE.equals(messageEntity.getRigName())) {
-                    isRigNameField.setValue(null);
+                if (StringUtils.isNotBlank(messageEntity.getRetiredStatus())
+                        && !REMOVE_VALUE.equals(messageEntity.getRetiredStatus())) {
+                    //  log.info("EicAccess {}", messageEntity.getEicAccess());
+                    String isRetiredStatus = null;
+                    if (messageEntity.getRetiredStatus().equalsIgnoreCase("Yes")
+                            || messageEntity.getRetiredStatus().equalsIgnoreCase("Y")) {
+                        isRetiredStatus = "Y";
+                    } else {
+                        isRetiredStatus = "N";
+                    }
+                    isRetiredField.setValue(isRetiredStatus);
+                    metadataFields.add(isRetiredField);
                 } else {
-                    isRigNameField.setValue(messageEntity.getRigName());
+                    if (isRetiredField.getValue() != null) {
+                        isRetiredField.setValue(null);
+                        metadataFields.add(isRetiredField);
+                    }
                 }
-                metadataFields.add(isRigNameField);
-            }
-*/
+
+                MetadataField isRigNameField = new MetadataField(new TeamsIdentifier("CUSTOM.NICK PROD.RIG NAME"));
+
+                if (StringUtils.isNotBlank(messageEntity.getRigName())
+                        && !REMOVE_VALUE.equals(messageEntity.getRigName())) {
+
+                    isRigNameField.setValue(messageEntity.getRigName());
+                    metadataFields.add(isRigNameField);
+                } else {
+                    if (isRigNameField.getValue() != null) {
+                        isRigNameField.setValue(null);
+                        metadataFields.add(isRigNameField);
+                    }
+                }
+
                 MetadataField fileNameCompareField = new MetadataField(new TeamsIdentifier("CUSTOM.NICK PROD FILENAME COMPARE"));
 
                 if (StringUtils.isNotBlank(messageEntity.getFileNameCompare()) &&
