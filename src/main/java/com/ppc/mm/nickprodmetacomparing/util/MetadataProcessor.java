@@ -321,6 +321,18 @@ public class MetadataProcessor {
                         metadataFields.add(assetDescField);
                     }
                 }
+                
+                if (StringUtils.isNotBlank(messageEntity.getAssetDescription2())
+                        && !REMOVE_VALUE.equals(messageEntity.getAssetDescription2())) {
+                    // log.info("AssetDescription {}", messageEntity.getAssetDescription());
+                    assetDescField.setValue(messageEntity.getAssetDescription2());
+                    metadataFields.add(assetDescField);
+                } else {
+                    if (assetDescField.getValue() != null) {
+                        assetDescField.setValue(null);
+                        metadataFields.add(assetDescField);
+                    }
+                }
 /*
             if(StringUtils.isNotBlank(messageEntity.getBarcode())) {
                 TeamsIdentifier barcodeVal = new TeamsIdentifier("CUSTOM.NICK PROD BARCODE");
@@ -735,6 +747,18 @@ public class MetadataProcessor {
                 if (StringUtils.isNotBlank(messageEntity.getLocation()) && !REMOVE_VALUE.equals(messageEntity.getLocation())) {
                     //   log.info("Location {}", messageEntity.getLocation());
                     locationField.setValue(messageEntity.getLocation());
+                    metadataFields.add(locationField);
+
+                } else {
+                    if (locationField.getValue() != null) {
+                        locationField.setValue(null);
+                        metadataFields.add(locationField);
+                    }
+                }
+                
+                if (StringUtils.isNotBlank(messageEntity.getImageLocation2()) && !REMOVE_VALUE.equals(messageEntity.getImageLocation2())) {
+                    //   log.info("Location {}", messageEntity.getLocation());
+                    locationField.setValue(messageEntity.getImageLocation2());
                     metadataFields.add(locationField);
 
                 } else {
