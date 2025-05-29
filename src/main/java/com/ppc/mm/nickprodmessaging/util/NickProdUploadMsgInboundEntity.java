@@ -50,9 +50,11 @@ public class NickProdUploadMsgInboundEntity {
 	private String width;
 	private String yearbook;
 	private String location;
+	private String imageLocation2;
 	private PostEpisode postEpisodeID;	//------------------3
 	private ProdShow prodShowID;	//----------------------4
 	private String assetDescription;
+	private String assetDescription2;
 	private String retiredStatus;
 	private String rigName;
 	private Integer priority;
@@ -83,6 +85,13 @@ public class NickProdUploadMsgInboundEntity {
 	public void setLocation(String location) {
 		this.location = location;
 	}
+	public String getImageLocation2() {
+		return imageLocation2;
+	}
+	public void setImageLocation2(String imageLocation2) {
+		this.imageLocation2 = imageLocation2;
+	}
+
 	public PostEpisode getPostEpisodeID() {
 		return postEpisodeID;
 	}
@@ -397,6 +406,12 @@ public class NickProdUploadMsgInboundEntity {
 	  
 	public void setFileNameCompare(String fileNameCompare) {
 	    this.fileNameCompare = fileNameCompare;
+	}
+	public String getAssetDescription2() {
+		return assetDescription2;
+	}
+	public void setAssetDescription2(String assetDescription2) {
+		this.assetDescription2 = assetDescription2;
 	}
 	  
 	@Override
