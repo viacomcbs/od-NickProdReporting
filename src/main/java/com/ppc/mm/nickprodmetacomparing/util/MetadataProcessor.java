@@ -13,6 +13,8 @@ import com.artesia.metadata.MetadataTableField;
 import com.artesia.security.SecuritySession;
 import com.artesia.security.session.services.AuthenticationServices;
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.MapperFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ppc.mm.nickprodmessaging.util.*;
 import com.ppc.mm.nickprodmetacomparing.entity.NickMetadataCompare;
@@ -139,11 +141,19 @@ public class MetadataProcessor {
 
 	private void mapToJson(NickProdMetadataUpdateMarch25 nickObject, SecuritySession securitySession) {
 		// log.info("mapToJson {} ",nickObject.getOtid());
+		
+		log.info("Inside mapToJson method for OTID: {}"+ nickObject.getOtid());
+
 		if (mapper == null) {
 			mapper = new ObjectMapper();
 		}
 
 		try {
+			
+			mapper.configure(MapperFeature.ACCEPT_CASE_INSENSITIVE_PROPERTIES, true);
+			mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+
+
 			NickProdUploadMsgInboundEntity entity = mapper.readValue(nickObject.getMetadata(),
 					NickProdUploadMsgInboundEntity.class);
 			// log.info("NickProdUploadMsgInboundEntity {} ",entity.toString());
@@ -172,7 +182,7 @@ public class MetadataProcessor {
 
 	private String updateMetadata(NickProdUploadMsgInboundEntity messageEntity, SecuritySession securitySession) {
 
-		// log.info("in updateMetadata {} ",messageEntity.getOtid());
+		 log.info("in updateMetadata {} ",messageEntity.getOtid());
 
 		DateTimeFormatter formatter = DateTimeFormatter.ofPattern("MM/dd/yyyy");
 		String conditionCol = "";
@@ -187,7 +197,7 @@ public class MetadataProcessor {
 		try {
 			// deletePreviousMetadata(messageEntity.getOtid());
 
-			// log.info("Asset created {}",asset.getAssetId().asString());
+			 log.info("Asset created {}",asset.getAssetId().asString());
 			assetIdentifiers[0] = asset.getAssetId();
 			if (asset.isLocked()) {
 				message = "Asset is locked";
@@ -308,7 +318,7 @@ public class MetadataProcessor {
 					// log.info("AssetName {}", messageEntity.getAssetName());
 					TeamsIdentifier assetNameVal = new TeamsIdentifier("CUSTOM.EMBEDDED.NICK PROD ASSET NAME");
 					MetadataField assetNameValField = new MetadataField(assetNameVal);
-					if (REMOVE_VALUE.equals(messageEntity.getAssetName())) {
+					if (!REMOVE_VALUE.equals(messageEntity.getAssetName())) {
 						assetNameValField.setValue(null);
 					} else {
 						assetNameValField.setValue(messageEntity.getAssetName());
@@ -417,16 +427,16 @@ public class MetadataProcessor {
 							eicAccess = "N";
 						}
 						eicAccessField.setValue(eicAccess);
-						metadataFields.add(eicAccessField);
+						//metadataFields.add(eicAccessField);
 					} else {
 						if (eicAccessField.getValue() != null) {
 							eicAccessField.setValue(null);
-							metadataFields.add(eicAccessField);
+							//metadataFields.add(eicAccessField);
 						}
 					}
 
-					this.mc.addMetadataElement((MetadataElement) assetDescField);
-					metadataFields.add(assetDescField);
+					this.mc.addMetadataElement((MetadataElement) eicAccessField);
+					metadataFields.add(eicAccessField);
 				}
 
 				if (StringUtils.isNotBlank(messageEntity.getEicComments())) {
@@ -653,7 +663,7 @@ public class MetadataProcessor {
 					TeamsIdentifier prodNameVal = new TeamsIdentifier("CUSTOM.EMBEDDED.NICK PROD PRODUCTION NAME");
 					MetadataField prodNameField = new MetadataField(prodNameVal);
 					// log.info("ProductionName {}", messageEntity.getProductionName());
-					if (REMOVE_VALUE.equals(messageEntity.getProductionName())) {
+					if (!REMOVE_VALUE.equals(messageEntity.getProductionName())) {
 						prodNameField.setValue(null);
 					} else {
 						prodNameField.setValue(messageEntity.getProductionName());
@@ -801,7 +811,7 @@ public class MetadataProcessor {
 						new TeamsIdentifier("CUSTOM.EMBEDDED.NICK PROD YEARBOOK"));
 
 				if (StringUtils.isNotBlank(messageEntity.getYearbook())) {
-					if (REMOVE_VALUE.equals(messageEntity.getYearbook())) {
+					if (!REMOVE_VALUE.equals(messageEntity.getYearbook())) {
 						// log.info("Yearbook {}", messageEntity.getYearbook());
 						yearBookField.setValue(messageEntity.getYearbook());
 						// metadataFields.add(yearBookField);
@@ -836,7 +846,7 @@ public class MetadataProcessor {
 				}
 
 				if (StringUtils.isNotBlank(messageEntity.getImageLocation2())) {
-					if (REMOVE_VALUE.equals(messageEntity.getImageLocation2())) {
+					if (!REMOVE_VALUE.equals(messageEntity.getImageLocation2())) {
 						// log.info("Location {}", messageEntity.getLocation());
 						locationField.setValue(messageEntity.getImageLocation2());
 						metadataFields.add(locationField);
@@ -999,6 +1009,7 @@ public class MetadataProcessor {
 				// log.info("unlock asset");
 			}
 		} catch (Exception e) {
+			e.printStackTrace();
 			log.error("Inside Catch:", e);
 			try {
 				message = "Unknow Error Occurred.....!";
