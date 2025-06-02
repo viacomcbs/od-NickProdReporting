@@ -313,16 +313,27 @@ public class MetadataProcessor {
 					this.mc.addMetadataElement((MetadataElement) artistValField);
 					metadataFields.add(artistValField);
 				}
+				
+				
+				log.info("Asset name>>>>>>>>> {}",messageEntity.getAssetName());
 
 				if (StringUtils.isNotBlank(messageEntity.getAssetName())) {
-					// log.info("AssetName {}", messageEntity.getAssetName());
+					
+					log.info("AssetName {}", messageEntity.getAssetName());
 					TeamsIdentifier assetNameVal = new TeamsIdentifier("CUSTOM.EMBEDDED.NICK PROD ASSET NAME");
 					MetadataField assetNameValField = new MetadataField(assetNameVal);
 					if (!REMOVE_VALUE.equals(messageEntity.getAssetName())) {
-						assetNameValField.setValue(null);
-					} else {
+						log.info("AssetName Inside else");
 						assetNameValField.setValue(messageEntity.getAssetName());
+					} else {
+				
+						log.info("AssetName Inside if");
+
+						assetNameValField.setValue(null);
 					}
+					
+					log.info("Before adding to collection.....!");
+
 					this.mc.addMetadataElement((MetadataElement) assetNameValField);
 
 					metadataFields.add(assetNameValField);
@@ -347,10 +358,10 @@ public class MetadataProcessor {
 							// metadataFields.add(assetDescField);
 						}
 
-						this.mc.addMetadataElement((MetadataElement) assetDescField);
-
-						metadataFields.add(assetDescField);
 					}
+					this.mc.addMetadataElement((MetadataElement) assetDescField);
+
+					metadataFields.add(assetDescField);
 				}
 
 				if (StringUtils.isNotBlank(messageEntity.getAssetDescription2())) {
@@ -362,12 +373,11 @@ public class MetadataProcessor {
 						if (assetDescField.getValue() != null) {
 							assetDescField.setValue(null);
 							// metadataFields.add(assetDescField);
-						}
-
-						this.mc.addMetadataElement((MetadataElement) assetDescField);
-
-						metadataFields.add(assetDescField);
+						}					
 					}
+					this.mc.addMetadataElement((MetadataElement) assetDescField);
+
+					metadataFields.add(assetDescField);
 				}
 
 				/*
@@ -407,10 +417,10 @@ public class MetadataProcessor {
 						if (creationDateField.getValue() != null) {
 							creationDateField.setValue(null);
 							// metadataFields.add(creationDateField);
-						}
-						this.mc.addMetadataElement((MetadataElement) creationDateField);
-						metadataFields.add(creationDateField);
+						}					
 					}
+					this.mc.addMetadataElement((MetadataElement) creationDateField);
+					metadataFields.add(creationDateField);
 				}
 
 				if (StringUtils.isNotBlank(messageEntity.getEicAccess())) {
@@ -664,11 +674,11 @@ public class MetadataProcessor {
 					MetadataField prodNameField = new MetadataField(prodNameVal);
 					// log.info("ProductionName {}", messageEntity.getProductionName());
 					if (!REMOVE_VALUE.equals(messageEntity.getProductionName())) {
-						prodNameField.setValue(null);
-					} else {
 						prodNameField.setValue(messageEntity.getProductionName());
 						conditionCol = messageEntity.getProductionName().toUpperCase();
 						searchCol = "PRODUCTION_NAME";
+					} else {
+						prodNameField.setValue(null);
 					}
 					this.mc.addMetadataElement((MetadataElement) prodNameField);
 					metadataFields.add(prodNameField);
@@ -849,12 +859,12 @@ public class MetadataProcessor {
 					if (!REMOVE_VALUE.equals(messageEntity.getImageLocation2())) {
 						// log.info("Location {}", messageEntity.getLocation());
 						locationField.setValue(messageEntity.getImageLocation2());
-						metadataFields.add(locationField);
+						//metadataFields.add(locationField);
 
 					} else {
 						if (locationField.getValue() != null) {
 							locationField.setValue(null);
-							metadataFields.add(locationField);
+							//metadataFields.add(locationField);
 						}
 					}
 					this.mc.addMetadataElement((MetadataElement) locationField);
@@ -1025,7 +1035,7 @@ public class MetadataProcessor {
 			return message;
 		} finally {
 
-			log.error("Inside Finally:");
+			log.info("Inside Finally:");
 			try {
 				if (!asset.isLocked()) {
 
