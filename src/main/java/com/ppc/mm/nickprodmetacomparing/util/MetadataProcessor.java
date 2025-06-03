@@ -668,6 +668,24 @@ public class MetadataProcessor {
 					this.mc.addMetadataElement((MetadataElement) prodDescField);
 					metadataFields.add(prodDescField);
 				}
+				
+				MetadataField prodIDField = new MetadataField(new TeamsIdentifier("CUSTOM.EMBEDDED.NICK PROD PRODID"));
+
+				if (StringUtils.isNotBlank(messageEntity.getProdID())) {
+					if (!REMOVE_VALUE.equals(messageEntity.getProdID())) {
+
+						prodIDField.setValue(messageEntity.getProdID());
+						// metadataFields.add(prodDescField);
+					} else {
+						if (prodIDField.getValue() != null) {
+							prodIDField.setValue(null);
+							// metadataFields.add(prodDescField);
+						}
+					}
+
+					this.mc.addMetadataElement((MetadataElement) prodIDField);
+					metadataFields.add(prodIDField);
+				}				
 
 				if (StringUtils.isNotBlank(messageEntity.getProductionName())) {
 					TeamsIdentifier prodNameVal = new TeamsIdentifier("CUSTOM.EMBEDDED.NICK PROD PRODUCTION NAME");
