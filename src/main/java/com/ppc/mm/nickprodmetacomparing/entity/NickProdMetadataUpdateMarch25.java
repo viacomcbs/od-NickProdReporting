@@ -41,7 +41,18 @@ public class NickProdMetadataUpdateMarch25 {
     @Column(name = "VALID_ERROR")
     private String validError;
 
-    public Long getId() {
+    @Column(name = "IS_SENT_FOR_VALIDATION")
+    private String isSentForValidation;
+    
+    public String getIsSentForValidation() {
+		return isSentForValidation;
+	}
+
+	public void setIsSentForValidation(String isSentForValidation) {
+		this.isSentForValidation = isSentForValidation;
+	}
+
+	public Long getId() {
         return id;
     }
 

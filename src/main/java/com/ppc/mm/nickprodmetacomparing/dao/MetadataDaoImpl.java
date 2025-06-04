@@ -216,8 +216,10 @@ public class MetadataDaoImpl implements MetadataDao {
             CriteriaQuery<NickProdMetadataUpdateMarch25> criteria = builder.createQuery(NickProdMetadataUpdateMarch25.class);
             Root<NickProdMetadataUpdateMarch25> root = criteria.from(NickProdMetadataUpdateMarch25.class);
 
-            Predicate statusPredicate = builder.isNull(root.get("processed"));
-            criteria.select(root).where(statusPredicate);
+            Predicate statusPredicate = builder.equal(root.get("processed"), "N");
+            Predicate processDate = builder.isNull(root.get("processedDate"));
+            
+            criteria.select(root).where(statusPredicate, processDate);
 
             criteria.orderBy(builder.asc(root.get("id")));
 

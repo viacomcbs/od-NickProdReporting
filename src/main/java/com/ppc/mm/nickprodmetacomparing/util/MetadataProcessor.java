@@ -171,11 +171,12 @@ public class MetadataProcessor {
 				nickObject.setErrorMsg(message);
 			}
 
-		} catch (JsonProcessingException e) {
+		} catch (Exception e) {
 			// throw new RuntimeException(e);
-
+			log.error("Error in mapToJson {} ", e.getMessage());
 			nickObject.setErrorMsg(e.getMessage());
 		}
+		
 		metadataService.saveObject(nickObject);
 
 	}
