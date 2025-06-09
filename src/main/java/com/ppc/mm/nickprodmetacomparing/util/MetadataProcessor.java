@@ -673,7 +673,11 @@ public class MetadataProcessor {
 				MetadataField prodIDField = new MetadataField(new TeamsIdentifier("CUSTOM.EMBEDDED.NICK PROD PRODID"));
 
 				if (StringUtils.isNotBlank(messageEntity.getProdID())) {
+					log.info("getProdID {}", messageEntity.getProdID());
+					
 					if (!REMOVE_VALUE.equals(messageEntity.getProdID())) {
+						
+						log.info("Inside if prodIDField");
 
 						prodIDField.setValue(messageEntity.getProdID());
 						// metadataFields.add(prodDescField);
